@@ -1,0 +1,1 @@
+{"version":3,"file":"token-bucket.d.ts","sourceRoot":"","sources":["../../../src/algorithms/token-bucket.ts"],"names":[],"mappings":"AAmDA,eAAO,MAAM,WAAW,GACtB,KAAK,MAAM,EACX,UAAU,MAAM,EAChB,eAAe,MAAM,KACpB,OAAO,CAAC;IAAE,OAAO,EAAE,OAAO,CAAC;IAAC,SAAS,EAAE,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAiBpE,CAAC"}

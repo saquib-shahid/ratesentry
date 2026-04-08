@@ -1,0 +1,1 @@
+{"version":3,"file":"fixed-window.d.ts","sourceRoot":"","sources":["../../../src/algorithms/fixed-window.ts"],"names":[],"mappings":"AAEA;;;;;GAKG;AACH,eAAO,MAAM,WAAW,GACtB,KAAK,MAAM,EACX,OAAO,MAAM,EACb,UAAU,MAAM,KACf,OAAO,CAAC;IAAE,OAAO,EAAE,OAAO,CAAC;IAAC,SAAS,EAAE,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CA2BpE,CAAC"}

@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'rate-limiter'
+    static_configs:
+      # Use host.docker.internal to scrape from host localhost if prometheus is in docker and service is on host,
+      # but if both are in docker-compose, use 'rate-limiter-service:3000'
+      - targets: ['rate-limiter-service:3000', 'host.docker.internal:3000'] 
