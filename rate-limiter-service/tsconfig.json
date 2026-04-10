@@ -6,7 +6,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "ignoreDeprecations": "6.0",
     "target": "esnext",
     "types": [],
     // For nodejs:
