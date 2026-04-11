@@ -1,11 +1,12 @@
 {
   "name": "ratesentry",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Distributed Rate Limiter Middleware for Express",
   "main": "dist/src/lib.js",
   "types": "dist/src/lib.d.ts",
   "exports": {
     ".": {
+      "require": "./dist/src/lib.js",
       "import": "./dist/src/lib.js",
       "types": "./dist/src/lib.d.ts"
     }
