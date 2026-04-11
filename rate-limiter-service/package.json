@@ -1,6 +1,6 @@
 {
   "name": "ratesentry",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Distributed Rate Limiter Middleware for Express",
   "main": "dist/src/lib.js",
   "types": "dist/src/lib.d.ts",
@@ -21,9 +21,24 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "rate-limiter",
+    "express",
+    "middleware",
+    "redis",
+    "sliding-window",
+    "rate-limiting"
+  ],
+  "author": "saquib-shahid",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saquib-shahid/ratesentry.git"
+  },
+  "homepage": "https://github.com/saquib-shahid/ratesentry#readme",
+  "bugs": {
+    "url": "https://github.com/saquib-shahid/ratesentry/issues"
+  },
   "type": "module",
   "dependencies": {
     "cors": "^2.8.6",
