@@ -59,27 +59,44 @@ Prometheus metrics are mapped to `http://localhost:9090`.
 
 ## 🔌 Integrating the Middleware
 
-This package exports an Express middleware that you can easily plug into *any* other application, given it shares the same Redis network.
+This package exports an Express middleware that you can easily plug into *any* other application, without needing to spin up Docker or set environment variables if you use standalone mode.
 
 ```bash
 npm install ratesentry
 ```
 
+### Simple Standalone Usage (No DB/Docker required)
+You can directly provide your Redis connection string and bypass MongoDB checks entirely!
+
 ```typescript
 import express from 'express';
-// 1. Import the middleware
+import { rateLimiter } from 'ratesentry';
+
+const app = express();
+
+app.use('/api', rateLimiter({ 
+  redisUrl: 'redis://your-redis-host:6379',
+  algorithm: 'sliding-window',
+  standalone: true,  // Bypasses MongoDB and dashboard integration
+  limit: 100,        // 100 requests
+  windowMs: 60000    // per minute
+}));
+
+app.get('/api/data', (req, res) => res.send('Protected Data'));
+```
+
+### Full Distributed Setup with Dashboard
+If you want to use the Admin Dashboard, Tier Limits, and IP Blacklisting, use the default mode:
+
+```typescript
+import express from 'express';
 import { rateLimiter } from 'ratesentry'; 
 
 const app = express();
 
-// 2. Plug it in globally or on specific routes
+// Expects process.env.REDIS_URL and MongoDB to be running
 app.use('/api', rateLimiter({ algorithm: 'sliding-window', defaultTier: 'free' }));
-
-// 3. That's it!
-app.get('/api/data', (req, res) => res.send('Protected Data'));
 ```
-
-It expects `process.env.REDIS_URL` to be configured as it interacts with Redis to track IP timestamps.
 
 ---
 
@@ -105,3 +122,5 @@ It automatically appends the following headers to help clients:
 - **`GET /rules`**: Gets IP Whitelist and Blacklists.
 - **`POST /rules`**: Create a security rule.
   - *Payload*: `{ "type": "BLACKLIST", "ipAddress": "192.168.1.1" }`
+
+

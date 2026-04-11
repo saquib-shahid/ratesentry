@@ -3,20 +3,51 @@ const Redis = RedisImport.default || RedisImport;
 import dotenv from 'dotenv';
 dotenv.config();
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+let _client: any;
+const _registeredCommands = new Map<string, any>();
 
-// We export a singleton Redis client
-export const redisClient = new (Redis as any)(REDIS_URL, {
-  maxRetriesPerRequest: 3,
-  retryStrategy(times: number) {
-    return Math.min(times * 50, 2000);
+function createClient(url: string) {
+  const client = new (Redis as any)(url, {
+    maxRetriesPerRequest: 3,
+    retryStrategy(times: number) {
+      return Math.min(times * 50, 2000);
+    }
+  });
+
+  client.on('error', (err: any) => {
+    console.error('Redis connection error:', err);
+  });
+
+  client.on('ready', () => {
+    console.log('Redis connected successfully to:', url);
+  });
+
+  for (const [name, config] of _registeredCommands.entries()) {
+    client.defineCommand(name, config);
+  }
+
+  return client;
+}
+
+_client = createClient(process.env.REDIS_URL || 'redis://localhost:6379');
+
+// We export a Proxy so we can hot-swap the connection instance if updateRedisClient is used
+export const redisClient: any = new Proxy({}, {
+  get(target, prop) {
+    if (prop === 'defineCommand') {
+      return (name: string, config: any) => {
+        _registeredCommands.set(name, config);
+        return _client.defineCommand(name, config);
+      };
+    }
+    const value = _client[prop as string];
+    return typeof value === 'function' ? value.bind(_client) : value;
   }
 });
 
-redisClient.on('error', (err: any) => {
-  console.error('Redis connection error:', err);
-});
-
-redisClient.on('ready', () => {
-  console.log('Redis connected successfully.');
-});
+export const updateRedisClient = (url: string) => {
+  if (_client) {
+    _client.disconnect();
+  }
+  _client = createClient(url);
+};

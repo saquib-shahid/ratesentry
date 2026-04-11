@@ -5,15 +5,27 @@ import { tokenBucket } from '../algorithms/token-bucket.js';
 import { configService } from '../services/config.service.js';
 import { rateLimitHits, rateLimitBlocks, rateLimitLatency } from '../services/metrics.service.js';
 import { Client } from '../services/db.service.js';
+import { updateRedisClient } from '../services/redis.service.js';
 
 export interface RateLimiterOptions {
   algorithm?: 'sliding-window' | 'fixed-window' | 'token-bucket';
   defaultTier?: string; 
+  redisUrl?: string;
+  standalone?: boolean;
+  limit?: number;
+  windowMs?: number;
 }
 
 export const rateLimiter = (options: RateLimiterOptions = {}) => {
   const algo = options.algorithm || 'sliding-window';
   const defaultTierName = options.defaultTier || 'free';
+  const isStandalone = options.standalone || false;
+  const standaloneLimit = options.limit || 100;
+  const standaloneWindowMs = options.windowMs || 60 * 1000;
+
+  if (options.redisUrl) {
+    updateRedisClient(options.redisUrl);
+  }
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const startTime = process.hrtime();
@@ -27,37 +39,58 @@ export const rateLimiter = (options: RateLimiterOptions = {}) => {
       let limit = 100; 
       let windowMs = 60 * 1000; 
 
-      if (apiKey) {
-        const client = await Client.findOne({ apiKey });
-        if (client) {
-          clientId = client._id.toString();
-          const tier = await configService.getTierConfig(client.tierId.toString());
-          if (tier) {
-            limit = tier.requestsPerMin;
-            tierLabel = tier.name;
-          }
-        }
+      if (isStandalone) {
+        limit = standaloneLimit;
+        windowMs = standaloneWindowMs;
       } else {
-        const tier = await configService.getTierByName(defaultTierName);
-        if (tier) {
-          limit = tier.requestsPerMin;
-          tierLabel = tier.name;
+        if (apiKey) {
+          try {
+            const client = await Client.findOne({ apiKey });
+            if (client) {
+              clientId = client._id.toString();
+              const tier = await configService.getTierConfig(client.tierId.toString());
+              if (tier) {
+                limit = tier.requestsPerMin;
+                tierLabel = tier.name;
+              }
+            }
+          } catch (e) {
+            console.error('DB query failed, fallback to defaults', e);
+          }
+        } else {
+          try {
+            const tier = await configService.getTierByName(defaultTierName);
+            if (tier) {
+              limit = tier.requestsPerMin;
+              tierLabel = tier.name;
+            }
+          } catch (e) {
+            console.error('DB query failed, fallback to defaults', e);
+          }
         }
       }
 
       rateLimitHits.inc({ algorithm: algo, tier: tierLabel });
 
-      const isBlacklisted = await configService.isBlacklisted(ip, clientId);
-      if (isBlacklisted) {
-        rateLimitBlocks.inc({ algorithm: algo, tier: tierLabel, reason: 'blacklist' });
-        res.status(403).json({ error: 'Forbidden: IP or Client is blacklisted' });
-        return;
+      if (!isStandalone) {
+        try {
+          const isBlacklisted = await configService.isBlacklisted(ip, clientId);
+          if (isBlacklisted) {
+            rateLimitBlocks.inc({ algorithm: algo, tier: tierLabel, reason: 'blacklist' });
+            res.status(403).json({ error: 'Forbidden: IP or Client is blacklisted' });
+            return;
+          }
+        } catch (e) { /* DB fail */ }
       }
 
-      const isWhitelisted = await configService.isWhitelisted(ip, clientId);
-      if (isWhitelisted) {
-        next();
-        return;
+      if (!isStandalone) {
+        try {
+          const isWhitelisted = await configService.isWhitelisted(ip, clientId);
+          if (isWhitelisted) {
+            next();
+            return;
+          }
+        } catch (e) { /* DB fail */ }
       }
 
       if (limit === -1) {
